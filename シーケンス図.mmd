@@ -1,0 +1,49 @@
+sequenceDiagram
+    actor User
+    participant Gradio
+    participant full_cot_reasoning
+    participant generate_turn
+    participant synthesize_turns
+    participant call_llm
+    participant Groq API
+
+    User->>Gradio: 質問を入力
+    Gradio->>full_cot_reasoning: gradio_interface()を呼び出し
+
+    activate full_cot_reasoning
+    full_cot_reasoning->>full_cot_reasoning: 開始時間を記録
+
+    loop 3回のターン
+        full_cot_reasoning->>generate_turn: generate_turn()を呼び出し
+        activate generate_turn
+        generate_turn->>call_llm: call_llm()を呼び出し
+        activate call_llm
+        call_llm->>Groq API: APIリクエスト送信
+        Groq API-->>call_llm: レスポンス返却
+        call_llm-->>generate_turn: 生成された推論を返却
+        deactivate call_llm
+        generate_turn-->>full_cot_reasoning: ターンの結果を返却
+        deactivate generate_turn
+        full_cot_reasoning->>full_cot_reasoning: ターンの時間を記録
+        full_cot_reasoning->>full_cot_reasoning: 結果を出力に追加
+    end
+
+    full_cot_reasoning->>synthesize_turns: synthesize_turns()を呼び出し
+    activate synthesize_turns
+    synthesize_turns->>call_llm: call_llm()を呼び出し
+    activate call_llm
+    call_llm->>Groq API: APIリクエスト送信
+    Groq API-->>call_llm: レスポンス返却
+    call_llm-->>synthesize_turns: 統合された推論を返却
+    deactivate call_llm
+    synthesize_turns-->>full_cot_reasoning: 統合結果を返却
+    deactivate synthesize_turns
+
+    full_cot_reasoning->>full_cot_reasoning: 終了時間を記録
+    full_cot_reasoning->>full_cot_reasoning: タイミング情報を計算
+    full_cot_reasoning->>full_cot_reasoning: 最終出力を生成
+
+    full_cot_reasoning-->>Gradio: 結果を返却
+    deactivate full_cot_reasoning
+
+    Gradio-->>User: 結果を表示
